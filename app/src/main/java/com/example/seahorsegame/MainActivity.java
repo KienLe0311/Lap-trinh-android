@@ -8,9 +8,6 @@ import android.widget.GridLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.example.seahorsegame.Question;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,9 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private Button rollDiceButton;
     private TextView positionText;
     private Random random = new Random();
-    private boolean isDiceRollAction = false; // Biến kiểm soát trạng thái tung xúc xắc
-
-
+    private boolean isDiceRollAction = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
         rollDiceButton = findViewById(R.id.rollDiceButton);
         positionText = findViewById(R.id.positionText);
 
-
         int rows = 5;
         int cols = 5;
         cells = new Button[TOTAL_CELLS];
@@ -51,7 +45,15 @@ public class MainActivity extends AppCompatActivity {
 
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
-                int actualCol = (row % 2 == 0) ? col : (cols - 1 - col);
+                int actualCol;
+                if (row % 2 == 0) {
+                    // Hàng chẵn: cột giữ nguyên thứ tự từ trái sang phải
+                    actualCol = col;
+                } else {
+                    // Hàng lẻ: cột đảo ngược từ phải sang trái
+                    actualCol = cols - 1 - col;
+                }
+
                 Button button = new Button(this);
                 button.setText(String.format("%02d", number));
                 button.setTextSize(10f);
@@ -61,7 +63,8 @@ public class MainActivity extends AppCompatActivity {
                 params.height = sizeInPx;
                 params.rowSpec = GridLayout.spec(row);
                 params.columnSpec = GridLayout.spec(actualCol);
-                params.setMargins(2,2,4,4);
+                params.setMargins(2, 2, 4, 4);
+
                 button.setLayoutParams(params);
 
                 gridLayout.addView(button);
@@ -107,9 +110,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Đặt màu nâu mặc định cho tất cả các ô
         for (int i = 0; i < TOTAL_CELLS; i++) {
-            cells[i].setBackgroundColor(getResources().getColor(R.color.brown_default));
+            cells[i].setBackgroundColor(getResources().getColor(R.color.white));
         }
     }
 
@@ -121,20 +123,20 @@ public class MainActivity extends AppCompatActivity {
 
     private void movePlayer(int steps) {
         cells[playerPosition].setText(String.valueOf(playerPosition + 1));
-        cells[playerPosition].setBackgroundColor(getResources().getColor(R.color.brown_default));
+        cells[playerPosition].setBackgroundColor(getResources().getColor(R.color.white));
 
         playerPosition += steps;
         if (playerPosition >= TOTAL_CELLS) {
             playerPosition = TOTAL_CELLS - 1;
             showWinDialog();
-            isDiceRollAction = false; // Reset trạng thái
+            isDiceRollAction = false;
             return;
         } else if (playerPosition < 0) {
             playerPosition = 0;
         }
         updatePlayerPosition(playerPosition);
         if (isDiceRollAction) {
-            checkCellType(playerPosition); // Chỉ kiểm tra loại ô khi tung xúc xắc
+            checkCellType(playerPosition);
         }
     }
 
@@ -142,7 +144,6 @@ public class MainActivity extends AppCompatActivity {
         positionText.setText("Vị trí: " + (position + 1));
         cells[position].setText("X");
         cells[position].setBackgroundColor(getResources().getColor(R.color.yellow_highlight));
-
     }
 
     private void checkCellType(int position) {
@@ -153,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (quizCells.contains(position)) {
             showQuizDialog();
         }
-        isDiceRollAction = false; // Reset trạng thái sau khi xử lý ô
+        isDiceRollAction = false;
     }
 
     private void showPenaltyDialog() {
@@ -175,52 +176,45 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showQuizDialog() {
-        // Lấy một câu hỏi ngẫu nhiên
         Question question = Questions.getRandomQuestion();
         String[] options = question.getOptions();
 
-        // Inflate layout từ file XML
         View dialogView = getLayoutInflater().inflate(R.layout.answer, null);
         TextView questionText = dialogView.findViewById(R.id.questionText);
         Button answerButton1 = dialogView.findViewById(R.id.answerButton1);
         Button answerButton2 = dialogView.findViewById(R.id.answerButton2);
         Button answerButton3 = dialogView.findViewById(R.id.answerButton3);
 
-        // Đặt câu hỏi và câu trả lời
         questionText.setText(question.getQuestion());
         answerButton1.setText(options[0]);
         answerButton2.setText(options[1]);
         answerButton3.setText(options[2]);
 
-        // Tạo hộp thoại và lưu tham chiếu
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setView(dialogView)
                 .setCancelable(false)
                 .create();
 
-        // Xử lý sự kiện khi người dùng chọn câu trả lời
         answerButton1.setOnClickListener(v -> {
             checkAnswer(0, question.getCorrectAnswerIndex());
-            dialog.dismiss(); // Đóng hộp thoại
+            dialog.dismiss();
         });
         answerButton2.setOnClickListener(v -> {
             checkAnswer(1, question.getCorrectAnswerIndex());
-            dialog.dismiss(); // Đóng hộp thoại
+            dialog.dismiss();
         });
         answerButton3.setOnClickListener(v -> {
             checkAnswer(2, question.getCorrectAnswerIndex());
-            dialog.dismiss(); // Đóng hộp thoại
+            dialog.dismiss();
         });
 
-        // Hiển thị hộp thoại
         dialog.show();
     }
 
-
-
     private void checkAnswer(int selectedIndex, int correctIndex) {
         if (selectedIndex == correctIndex) {
-            Toast.makeText(this, "Đúng! Bạn được tung xúc xắc tiếp!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Đúng! Bạn được tiến 2 ô!", Toast.LENGTH_SHORT).show();
+            movePlayer(2);
         } else {
             Toast.makeText(this, "Sai! Lùi 3 ô!", Toast.LENGTH_SHORT).show();
             movePlayer(-3);
@@ -232,11 +226,12 @@ public class MainActivity extends AppCompatActivity {
                 .setTitle("Chúc Mừng")
                 .setMessage("Bạn đã đến đích!")
                 .setPositiveButton("Chơi lại", (dialog, which) -> {
-                    playerPosition = 0;
-                    setupBoard();
-                    updatePlayerPosition(0);
+                    playerPosition = 0; // Đặt lại vị trí người chơi
+                    setupBoard();       // Thiết lập lại bảng
+                    updatePlayerPosition(0); // Cập nhật vị trí bắt đầu
                 })
                 .setCancelable(false)
-                .show();
+                .show(); // Bổ sung phương thức show() để hiển thị hộp thoại
     }
+
 }
